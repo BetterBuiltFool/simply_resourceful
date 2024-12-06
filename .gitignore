@@ -162,3 +162,4 @@ cython_debug/
 #.idea/
 simply_resourceful/src.code-workspace
 simply_resourceful/misc_test.py
+misc_test.py
