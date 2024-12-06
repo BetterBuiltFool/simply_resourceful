@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Optional, Type, TypeVar
-
-
-T = TypeVar("T")
+from typing import Any, Callable, Optional, Type
 
 
 class ResourceManager[T]:
@@ -27,16 +24,21 @@ class ResourceManager[T]:
         asset: T = self._asset_loader(resource_location)
         self.resources.setdefault(asset_handle, asset)
 
-    def get(self, asset_handle: str) -> T:
+    def get(self, asset_handle: str, default: Optional[T] = None) -> T:
         """
         Gets the asset of the requested handle. Loads the asset if it isn't already.
+        If the asset can't be loaded and a default is given, pass along that instead.
+        The default is not added to the loaded dict.
 
         :param asset_handle: Name of the asset to be gotten
-        :raises KeyError: Raised if invalid handle is used.
-        TODO: Make this more helpful by looking for similarly named assets?
+        :raises KeyError: Raised if handle is not found, and no default is given
         :return: The (loaded) instance of the asset.
         """
         if asset_handle not in self.resource_locations:
+            if default is not None:
+                return default
+            # TODO: Make this more helpful by looking for similarly named assets?
+            # Could use difflib.get_close_matches()
             raise KeyError(f"'{asset_handle}' is not handled by {self}.")
         return self.resources.setdefault(
             asset_handle,
@@ -64,6 +66,6 @@ class ResourceManager[T]:
         )
 
 
-def getResourceManager[T](handle: str) -> ResourceManager[T]:
+def getResourceManager[T](handle: str = "") -> ResourceManager[T]:
     manager_set = ResourceManager._instances.setdefault(T, {})
     return manager_set.setdefault(handle, ResourceManager[T](handle))
