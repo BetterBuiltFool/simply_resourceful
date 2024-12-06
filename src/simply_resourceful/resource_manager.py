@@ -28,12 +28,22 @@ class ResourceManager[T]:
         self.resources.setdefault(asset_handle, asset)
 
     def get(self, asset_handle: str) -> T:
+        """
+        Gets the asset of the requested handle. Loads the asset if it isn't already.
+
+        :param asset_handle: Name of the asset to be gotten
+        :raises KeyError: Raised if invalid handle is used.
+        TODO: Make this more helpful by looking for similarly named assets?
+        :return: The (loaded) instance of the asset.
+        """
         if asset_handle not in self.resource_locations:
             raise KeyError(f"'{asset_handle}' is not handled by {self}.")
         return self.resources.setdefault(
             asset_handle,
             self._asset_loader(self.resource_locations.get(asset_handle)),
-            # (...).get can't fail outside of race conditions since we check first.
+            # This get() can't fail outside of race conditions since we check first.
+            # If you are here looking for why your asset loader is being passed None,
+            # Check to see if you are removing the key in another thread.
         )
 
     def dump(self, asset_handle: str) -> T:
