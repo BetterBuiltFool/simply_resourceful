@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Optional, Type
+from typing import Any, Callable, Optional, Type, TypeVar
+
+
+T = TypeVar("T")
 
 
 class ResourceManager[T]:
@@ -66,6 +69,6 @@ class ResourceManager[T]:
         )
 
 
-def getResourceManager[T](handle: str = "") -> ResourceManager[T]:
-    manager_set = ResourceManager._instances.setdefault(T, {})
-    return manager_set.setdefault(handle, ResourceManager[T](handle))
+def getResourceManager(asset_type: Type[T], handle: str = "") -> ResourceManager[T]:
+    manager_set = ResourceManager._instances.setdefault(asset_type, {})
+    return manager_set.setdefault(handle, ResourceManager[asset_type](handle))
