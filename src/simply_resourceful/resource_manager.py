@@ -66,11 +66,13 @@ class ResourceManager[T]:
             self.resources[asset_handle] = asset
         return asset
 
-    def dump(self, asset_handle: str) -> T:
-        pass
+    def dump(self, asset_handle: str) -> T | None:
+        return dict.pop(asset_handle, None)
 
-    def forget(self, asset_handle: str) -> tuple[T | None, Path]:
-        pass
+    def forget(self, asset_handle: str) -> tuple[T | None, Any]:
+        old_asset = self.dump(asset_handle)
+        old_location = self.resource_locations.pop(asset_handle, None)
+        return (old_asset, old_location)
 
     @staticmethod
     def _asset_loader(*args, **kwds):
