@@ -50,9 +50,9 @@ class ResourceManager[T]:
                 closest = difflib.get_close_matches(
                     asset_handle, self.resource_locations.keys(), n=1
                 )
-                error_msg = f"'{asset_handle}' is not handled by {self}."
+                error_msg = f"Resource '{asset_handle}' is not handled by {self}."
                 if len(closest) > 0:
-                    error_msg += f"\nDid you mean '{closest[0]}'?"
+                    error_msg += f" Did you mean '{closest[0]}'?"
                 raise KeyError(error_msg)
             return default
         asset = self.resources.get(asset_handle, None)
@@ -61,7 +61,7 @@ class ResourceManager[T]:
             if asset is None:
                 # Last chance to get an asset
                 if default is None:
-                    raise KeyError(f"'{asset_handle}' failed to load.")
+                    raise KeyError(f"Resource '{asset_handle}' failed to load.")
                 asset = default
             self.resources[asset_handle] = asset
         return asset
