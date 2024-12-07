@@ -43,13 +43,18 @@ class ResourceManager[T]:
             # TODO: Make this more helpful by looking for similarly named assets?
             # Could use difflib.get_close_matches()
             raise KeyError(f"'{asset_handle}' is not handled by {self}.")
-        return self.resources.setdefault(
-            asset_handle,
-            self._asset_loader(self.resource_locations.get(asset_handle)),
-            # This get() can't fail outside of race conditions since we check first.
-            # If you are here looking for why your asset loader is being passed None,
-            # Check to see if you are removing the key in another thread.
-        )
+        asset = self.resources.get(asset_handle, None)
+        if asset is None:
+            asset = self._asset_loader(self.resource_locations.get(asset_handle))
+            self.resources[asset_handle] = asset
+        return asset
+        # return self.resources.setdefault(
+        #     asset_handle,
+        #     self._asset_loader(self.resource_locations.get(asset_handle)),
+        #     # This get() can't fail outside of race conditions since we check first.
+        #     # If you are here looking for why your asset loader is being passed None,
+        #     # Check to see if you are removing the key in another thread.
+        # )
 
     def dump(self, asset_handle: str) -> T:
         pass
