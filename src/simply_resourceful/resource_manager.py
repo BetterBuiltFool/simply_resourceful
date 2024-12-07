@@ -27,6 +27,11 @@ class ResourceManager[T]:
         asset: T = self._asset_loader(resource_location)
         self.resources.setdefault(asset_handle, asset)
 
+    def force_update(self, asset_handle: str, asset: T) -> T | None:
+        old_asset = self.resources.get(asset_handle, None)
+        self.resources[asset_handle] = asset
+        return old_asset
+
     def get(self, asset_handle: str, default: Optional[T] = None) -> T:
         """
         Gets the asset of the requested handle. Loads the asset if it isn't already.
