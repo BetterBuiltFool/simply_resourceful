@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import difflib
 from pathlib import Path
 from typing import Any, Callable, Optional, Type, TypeVar
 
@@ -45,11 +46,15 @@ class ResourceManager[T]:
         :return: The (loaded) instance of the asset.
         """
         if asset_handle not in self.resource_locations:
-            if default is not None:
-                return default
-            # TODO: Make this more helpful by looking for similarly named assets?
-            # Could use difflib.get_close_matches()
-            raise KeyError(f"'{asset_handle}' is not handled by {self}.")
+            if default is None:
+                closest = difflib.get_close_matches(
+                    asset_handle, self.resource_locations.keys(), n=1
+                )
+                error_msg = f"'{asset_handle}' is not handled by {self}."
+                if len(closest) > 0:
+                    error_msg += f"\nDid you mean '{closest[0]}'?"
+                raise KeyError(error_msg)
+            return default
         asset = self.resources.get(asset_handle, None)
         if asset is None:
             asset = self._asset_loader(self.resource_locations.get(asset_handle))
