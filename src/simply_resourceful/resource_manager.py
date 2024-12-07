@@ -35,7 +35,8 @@ class ResourceManager[T]:
 
         :param asset_handle: Name of the asset to be gotten
         :param default: Item returned if the asset is unavailable
-        :raises KeyError: Raised if handle is not found, and no default is given
+        :raises KeyError: Raised if handle is not found or fails to load,
+        and no default is given
         :return: The (loaded) instance of the asset.
         """
         if asset_handle not in self.resource_locations:
@@ -47,6 +48,11 @@ class ResourceManager[T]:
         asset = self.resources.get(asset_handle, None)
         if asset is None:
             asset = self._asset_loader(self.resource_locations.get(asset_handle))
+            if asset is None:
+                # Last chance to get an asset
+                if default is None:
+                    raise KeyError(f"'{asset_handle}' failed to load.")
+                asset = default
             self.resources[asset_handle] = asset
         return asset
 
