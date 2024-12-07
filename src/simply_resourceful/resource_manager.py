@@ -34,6 +34,7 @@ class ResourceManager[T]:
         The default is not added to the loaded dict.
 
         :param asset_handle: Name of the asset to be gotten
+        :param default: Item returned if the asset is unavailable
         :raises KeyError: Raised if handle is not found, and no default is given
         :return: The (loaded) instance of the asset.
         """
@@ -48,13 +49,6 @@ class ResourceManager[T]:
             asset = self._asset_loader(self.resource_locations.get(asset_handle))
             self.resources[asset_handle] = asset
         return asset
-        # return self.resources.setdefault(
-        #     asset_handle,
-        #     self._asset_loader(self.resource_locations.get(asset_handle)),
-        #     # This get() can't fail outside of race conditions since we check first.
-        #     # If you are here looking for why your asset loader is being passed None,
-        #     # Check to see if you are removing the key in another thread.
-        # )
 
     def dump(self, asset_handle: str) -> T:
         pass
