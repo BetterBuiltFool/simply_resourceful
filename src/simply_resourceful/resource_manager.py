@@ -17,18 +17,52 @@ class ResourceManager[T]:
         self.resource_locations: dict[str, Path] = {}
 
     def config(self, loader_helper: Optional[Callable] = None) -> None:
+        """
+        Modifies the resource manager's behavior per the specified parameters.
+
+        :param loader_helper: Loader function for the resource. Must take the location
+        data its parameter, and return an instance of the resource.
+        """
         if loader_helper:
             self._asset_loader = loader_helper
 
     def preload(self, asset_handle: str, resource_location: Any) -> None:
+        """
+        Prepares the resource manager to load a resource.
+
+        The asset handle is how users of the resource will ask for it.
+
+        The resource location is data that describes how the asset loader can locate
+        the resource. It may be a path, or a download site, or anything else, so long
+        as the asset loader can handle the parameters.
+
+        :param asset_handle: The name of the resource
+        :param resource_location: The data the asset loader needs to produce the
+        resource.
+        """
         self.resource_locations.update({asset_handle: resource_location})
 
     def force_load(self, asset_handle: str, resource_location: Any) -> None:
+        """
+        Establishes the resource in the database, and loads it immediately instead of
+        deferring to when the asset is requested.
+
+        :param asset_handle: The name of the resource
+        :param resource_location: The data the asset loader needs to produce the
+        resource.
+        """
         self.preload(asset_handle, resource_location)
         asset: T = self._asset_loader(resource_location)
         self.resources.setdefault(asset_handle, asset)
 
     def force_update(self, asset_handle: str, asset: T) -> T | None:
+        """
+        Changes the loaded resource of the given handle to that of the given asset.
+
+        :param asset_handle: The name of the resource
+        :param asset: The new asset replacing the old asset.
+        :return: The old asset, or None if the asset wasn't loaded.
+        """
         old_asset = self.resources.get(asset_handle, None)
         self.resources[asset_handle] = asset
         return old_asset
@@ -67,9 +101,27 @@ class ResourceManager[T]:
         return asset
 
     def dump(self, asset_handle: str) -> T | None:
+        """
+        Unloads the specified asset from the manager. Existing copies of the resource
+        being used by objects will keep it in memory until they cease using it.
+
+        If the asset is requested again, it will be reloaded.
+
+        :param asset_handle: The name of the resource
+        :return: The resource being unloaded, or None if it does not exist.
+        """
         return dict.pop(asset_handle, None)
 
     def forget(self, asset_handle: str) -> tuple[T | None, Any]:
+        """
+        Unloads the asset, and removes it from the load dictionary.
+
+        If the resource is requested again, it will fail to load.
+
+        :param asset_handle: _description_
+        :return: A tuple containing the old asset and its location data, or None if
+        none exists.
+        """
         old_asset = self.dump(asset_handle)
         old_location = self.resource_locations.pop(asset_handle, None)
         return (old_asset, old_location)
@@ -87,5 +139,13 @@ class ResourceManager[T]:
 
 
 def getResourceManager(asset_type: Type[T], handle: str = "") -> ResourceManager[T]:
+    """
+    Provides a Resource Manager of the specified type and handle.
+    If the asset type or handle do not match an existing one, it will be created.
+
+    :param asset_type: The Type of the resource being managed.
+    :param handle: The name of the manager, defaults to ""
+    :return: The resource manager of the type and handle specified.
+    """
     manager_set = ResourceManager._instances.setdefault(asset_type, {})
     return manager_set.setdefault(handle, ResourceManager[asset_type](handle))
