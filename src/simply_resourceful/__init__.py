@@ -1,1 +1,1 @@
-from .resource_manager import getResourceManager  # noqa: F401
+from .resource_manager import getResourceManager, ResourceManager  # noqa: F401
