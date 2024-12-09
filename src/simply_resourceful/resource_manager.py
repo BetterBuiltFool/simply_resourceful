@@ -110,7 +110,7 @@ class ResourceManager[T]:
         :param asset_handle: The name of the resource
         :return: The resource being unloaded, or None if it does not exist.
         """
-        return dict.pop(asset_handle, None)
+        return self.resources.pop(asset_handle, None)
 
     def forget(self, asset_handle: str) -> tuple[T | None, Any]:
         """
