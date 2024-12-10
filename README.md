@@ -72,6 +72,12 @@
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
+      <ul>
+        <li><a href="#types">Types</a></li>
+        <li><a href="#using-asset-handles">Using Asset Handles</a></li>
+        <li><a href="#preloading">Preloading</a></li>
+        <li><a href="#configuration">Configuration</a></li>
+      </ul>
     <li><a href="#roadmap">Roadmap</a></li>
     <!--<li><a href="#contributing">Contributing</a></li>-->
     <li><a href="#license">License</a></li>
@@ -121,8 +127,99 @@ Simply Resourceful also requires Pygame Community edition to be installed.
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-EventManagers and KeyListeners are instantiated like loggers from the built-in python logging library.
-If you run basicConfig, it should be done in your main entry point, such as main.py or equivalent. It needs to be run before your main game loop.
+Assets can often be a heavy burden on memory. The process of loading them from file or downloading them can also be intensives. Having your assets loaded only once, and then reused whenever needed, can help reduce the load. Additionally, instead of loading all assets immediatly, lazy loading allows the load times to be deferred until an asset is needed, and never coming into memory at all if never requested.
+
+Resource Managers are created with 
+```python
+import resourceful
+
+MANAGER = resourceful.getResourceManager(<type>, "handle")
+```
+
+This will ensure that a resource manager for the given type and of the given handle exists.
+Handles are optional, but are useful for having resource managers with different loading behavior despite the same resource type.
+
+Note that for the rest of the document, 'resource' and 'asset' may be used interchangeably.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Types
+
+Resource Managers are generic, and can handle any type of data. The type you want the resource manager to handle must be specified before use.
+
+```python
+import pygame
+import resourceful
+
+MANAGER = resourceful.getResourceManager(pygame.Surface)
+```
+
+In this example, a resource manager that handles pygame surfaces will be created or found, if it exists, with a blank handle. This might be useful for storing images loaded into memory in one single place.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Using Asset Handles
+
+Resources are referenced by asset handles, which are strings that supply common names to their resources. They are used as such:
+```python
+
+sprite.image = image_manager.get("Hero")
+```
+
+This will check the manager for an asset called "Hero", load it if necessary, and supply the sprite with it for display.
+
+In more complicated use cases, it may be desirable to supply a default value. This may be because the asset handle being requested is coming from elsewhere, and might not be guaranteed to be correct, and something is needed to fill the gap.
+
+That use case would look something like this:
+```python
+
+sprite.image = image_manager.get(current_hero_pose, hero_blank_sprite)
+```
+
+This way, if current_hero_pose accidentally refers to an invalid resource, the experience of the player will not be interrupted.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Preloading
+
+Before any assets are requested, the resource manager must be made aware of the assets it will manage. This must be done early on in the program, before any manager.get() operations are called.
+```python
+# ---Program set up stuff---
+# Global variables and such, module initialization, whatever.
+manager.preload("Hero", "path/to/hero.png")
+```
+
+In this example, the manager now is aware of an asset called "Hero", as well as a path to find it for loading.
+
+Assets can also be force-loaded, which is similar to preloading, but loads the asset into memory from its location data immediately, no need to have something call get(). This might be useful for assets that are guaranteed to be used immediately.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Configuration
+
+Because resource managers are generic, they have no inherent knowledge of how to load any given resource. So, a loader function must be supplied.
+For example:
+```python
+def image_loader(resource_location: Path | str) -> pygame.Surface:
+    asset = pygame.image.load(resource_location)
+    return asset.convert()
+
+# ---Program set up stuff---
+# Global variables and such, module initialization, whatever.
+manager.config(loader_helper=image_loader)
+manager.preload("Hero", "path/to/hero.png")
+```
+
+This will load the image from the path, and convert it to be ready for use.
+
+Loader functions only have two requirements:
+1. They must take the same data as is used for location data by the resource manager. That is, if the location data is a path, the loader must take a path.
+2. They must return the same type as the resource manager, or None, indicating a load failure.
+They can do anything else you'd like, and can be a simple or as complicated as you want. to extend the above example, you could have it check the file extension to determine if convert() is sufficient, or if convert_alpha() would be preferable.
+
+Additionally, in an async-aware environment, you could have your loader begin a coroutine to download your asset, and return a default asset to tide things over until then, updating the asset upon completion.
+
+From there, the resource manager will take over, loading and supplying resources as needed by other parts of the program.
 
 <!--
 _For more examples, please refer to the [Documentation](https://example.com)_
@@ -135,6 +232,9 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 
 <!-- ROADMAP -->
 ## Roadmap
+
+- [ ] Make pickleable for saving and loading resource managers.
+- [ ] Allow for objects to request proxies that don't load the asset until it is called upon.
 
 <!--
 - [ ] Feature 2

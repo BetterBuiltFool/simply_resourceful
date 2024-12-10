@@ -3,7 +3,7 @@ import sys
 import unittest
 
 sys.path.append(str(pathlib.Path.cwd()))
-from src.simply_resourceful import resource_manager as rm  # noqa: E402
+from src.resourceful import resource_manager as rm  # noqa: E402
 
 
 def test_loader(resource_location: int) -> int | None:
