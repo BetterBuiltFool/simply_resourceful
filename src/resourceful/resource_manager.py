@@ -131,7 +131,7 @@ class ResourceManager[T]:
         """
         This is overwritten by self.config
 
-        :raises AttributeError: If not asset_loader is supplied via config.
+        :raises AttributeError: If asset_loader is not supplied via config.
         """
         raise AttributeError(
             "No loader function assigned. You must assign a loader to run."
