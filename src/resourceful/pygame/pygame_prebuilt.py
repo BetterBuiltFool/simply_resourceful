@@ -7,15 +7,16 @@ import pygame
 
 _image_manager = ResourceManager[pygame.Surface]("pygame_images")
 _sound_manager = ResourceManager[pygame.Sound]("pygame_sounds")
-_has_transparency: list[str] = [".png", ".gif", ".lbm"]
+_has_transparency: list[str] = [".png", ".gif", ".lbm", ".webp", ".tga", ".xcf", ".qoi"]
+# I think that's all of them that can have alpha. I'll adjust as needed.
 
 
 def _load_pygame_images(resource_location: os.PathLike | str) -> pygame.Surface:
     location = Path(resource_location)
     file_type = location.suffix
     image = pygame.image.load(location)
-    if file_type in _has_transparency:
-        # Only want to call this on things that can contain transparency.
+    if file_type.lower() in _has_transparency:
+        # Only want to call this on things that have alpha channels.
         image.convert_alpha()
     else:
         image.convert()
