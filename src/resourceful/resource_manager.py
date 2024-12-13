@@ -51,6 +51,18 @@ class ResourceManager[T]:
         name_key: Optional[Callable] = None,
         location_data_key: Optional[Callable] = None,
     ):
+        """
+        Parse a directory, preloading all of the files inside into the resource manager.
+
+        :param folder: Target directory
+        :param recursive: Whether to recursively search through subdirectories,
+        defaults to False
+        :param key: A function for choosing files to import, defaults all files
+        :param name_key: A function for creating asset names from files, defaults to
+        the relative path to the directory plus the name of the file.
+        :param location_data_key: Function for generating the location data required
+        for the asset loader, defaults to the file's parent folder.
+        """
         if key is None:
 
             def key(file: Path) -> Path | None:
@@ -60,11 +72,13 @@ class ResourceManager[T]:
 
             def name_key(file: Path) -> str:
                 """
-                Takes the file name of the asset as the asset name.
+                Uses the relative path and filename, without suffixes,
+                as the default asset handle.
                 """
+                file = file.relative_to(folder)
                 while file.suffix != "":
                     file = file.with_suffix("")
-                return file.stem
+                return str(file)
 
         if location_data_key is None:
 
