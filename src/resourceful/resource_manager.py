@@ -89,11 +89,11 @@ class ResourceManager[T]:
                 return file.parent
 
         directory = Path(folder)
-        files = directory.iterdir()
+        files = list(directory.iterdir())
         for item in files:
             if item.is_dir():
                 if recursive:
-                    self.mass_import(item, recursive, key, name_key, location_data_key)
+                    files.append(item)
                 continue
             if not key(item):
                 continue
