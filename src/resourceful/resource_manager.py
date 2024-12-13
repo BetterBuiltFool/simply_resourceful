@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import difflib
+import os
 from pathlib import Path
 from typing import Any, Callable, Optional, Type, TypeVar
 
@@ -41,6 +42,48 @@ class ResourceManager[T]:
         resource.
         """
         self.resource_locations.update({asset_handle: resource_location})
+
+    def mass_import(
+        self,
+        folder: os.PathLike | str,
+        recursive: bool = False,
+        key: Optional[Callable] = None,
+        name_key: Optional[Callable] = None,
+        location_data_key: Optional[Callable] = None,
+    ):
+        if key is None:
+
+            def key(file: Path) -> Path | None:
+                return file
+
+        if name_key is None:
+
+            def name_key(file: Path) -> str:
+                """
+                Takes the file name of the asset as the asset name.
+                """
+                while file.suffix != "":
+                    file = file.with_suffix("")
+                return file.stem
+
+        if location_data_key is None:
+
+            def location_data_key(file: Path) -> Path:
+                """
+                Gives the parent of the file as the location data.
+                """
+                return file.parent
+
+        directory = Path(folder)
+        files = directory.iterdir()
+        for item in files:
+            if item.is_dir():
+                if recursive:
+                    self.mass_import(item, recursive, key, name_key, location_data_key)
+                continue
+            if not key(item):
+                continue
+            self.preload(name_key(item), location_data_key(item))
 
     def force_load(self, asset_handle: str, resource_location: Any) -> None:
         """
