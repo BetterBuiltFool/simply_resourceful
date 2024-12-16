@@ -43,7 +43,7 @@ class ResourceManager[T]:
         """
         self.resource_locations.update({asset_handle: resource_location})
 
-    def mass_import(
+    def import_directory(
         self,
         folder: os.PathLike | str,
         recursive: bool = False,
