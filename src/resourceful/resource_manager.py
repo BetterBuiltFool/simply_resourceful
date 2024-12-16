@@ -127,14 +127,20 @@ class ResourceManager[T]:
     def force_update(self, asset_handle: str, asset: T) -> None:
         """
         Forces the asset at the given handle to become a copy of the supplied asset.
-        This will hot-swap the asset for all users.
+        This will hot-swap the asset for all of its users.
 
         Note - Not all object may support this behavior, and may be broken by it.
 
         :param asset_handle: The name of the resource
         :param asset: The new asset replacing the old asset.
         """
-        pass
+        old_asset = self.cache.get(asset_handle, None)
+        if old_asset is None:
+            # Nothing to replace, so just fill it in
+            self.cache[asset_handle] = asset
+            return
+        # Otherwise, force the loaded asset to take on the new asset's attributes.
+        old_asset.__dict__ = asset.__dict__
 
     def get(self, asset_handle: str, default: Optional[T] = None) -> T:
         """
