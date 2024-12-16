@@ -187,7 +187,7 @@ class ResourceManager[T]:
         """
         return self.cache.pop(asset_handle, None)
 
-    def forget(self, asset_handle: str) -> tuple[T | None, Any]:
+    def clear(self, asset_handle: str) -> tuple[T | None, Any]:
         """
         Unloads the asset, and removes it from the load dictionary.
 
