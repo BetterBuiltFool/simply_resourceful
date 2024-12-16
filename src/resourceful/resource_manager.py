@@ -14,7 +14,7 @@ class ResourceManager[T]:
 
     def __init__(self, handle: str) -> None:
         self.handle = handle
-        self.resources: dict[str, T] = {}
+        self.cache: dict[str, T] = {}
         self.resource_locations: dict[str, Path] = {}
 
     def config(self, loader_helper: Optional[Callable] = None) -> None:
@@ -27,7 +27,7 @@ class ResourceManager[T]:
         if loader_helper:
             self._asset_loader = loader_helper
 
-    def preload(self, asset_handle: str, resource_location: Any) -> None:
+    def import_asset(self, asset_handle: str, resource_location: Any) -> None:
         """
         Prepares the resource manager to load a resource.
 
@@ -52,7 +52,7 @@ class ResourceManager[T]:
         location_data_key: Optional[Callable] = None,
     ):
         """
-        Parse a directory, preloading all of the files inside into the resource manager.
+        Parse a directory, importing all of the files inside into the resource manager.
 
         :param folder: Target directory
         :param recursive: Whether to recursively search through subdirectories,
@@ -97,7 +97,7 @@ class ResourceManager[T]:
                 continue
             if not key(item):
                 continue
-            self.preload(name_key(item), location_data_key(item))
+            self.import_asset(name_key(item), location_data_key(item))
 
     def force_load(self, asset_handle: str, resource_location: Any) -> None:
         """
@@ -108,11 +108,11 @@ class ResourceManager[T]:
         :param resource_location: The data the asset loader needs to produce the
         resource.
         """
-        self.preload(asset_handle, resource_location)
+        self.import_asset(asset_handle, resource_location)
         asset: T = self._asset_loader(resource_location)
-        self.resources.setdefault(asset_handle, asset)
+        self.cache.setdefault(asset_handle, asset)
 
-    def force_update(self, asset_handle: str, asset: T) -> T | None:
+    def update(self, asset_handle: str, asset: T) -> T | None:
         """
         Changes the loaded resource of the given handle to that of the given asset.
 
@@ -120,9 +120,21 @@ class ResourceManager[T]:
         :param asset: The new asset replacing the old asset.
         :return: The old asset, or None if the asset wasn't loaded.
         """
-        old_asset = self.resources.get(asset_handle, None)
-        self.resources[asset_handle] = asset
+        old_asset = self.cache.get(asset_handle, None)
+        self.cache[asset_handle] = asset
         return old_asset
+
+    def force_update(self, asset_handle: str, asset: T) -> None:
+        """
+        Forces the asset at the given handle to become a copy of the supplied asset.
+        This will hot-swap the asset for all users.
+
+        Note - Not all object may support this behavior, and may be broken by it.
+
+        :param asset_handle: The name of the resource
+        :param asset: The new asset replacing the old asset.
+        """
+        pass
 
     def get(self, asset_handle: str, default: Optional[T] = None) -> T:
         """
@@ -146,7 +158,7 @@ class ResourceManager[T]:
                     error_msg += f" Did you mean '{closest[0]}'?"
                 raise KeyError(error_msg)
             return default
-        asset = self.resources.get(asset_handle, None)
+        asset = self.cache.get(asset_handle, None)
         if asset is None:
             asset = self._asset_loader(self.resource_locations.get(asset_handle))
             if asset is None:
@@ -154,10 +166,10 @@ class ResourceManager[T]:
                 if default is None:
                     raise KeyError(f"Resource '{asset_handle}' failed to load.")
                 asset = default
-            self.resources[asset_handle] = asset
+            self.cache[asset_handle] = asset
         return asset
 
-    def dump(self, asset_handle: str) -> T | None:
+    def uncache(self, asset_handle: str) -> T | None:
         """
         Unloads the specified asset from the manager. Existing copies of the resource
         being used by objects will keep it in memory until they cease using it.
@@ -167,7 +179,7 @@ class ResourceManager[T]:
         :param asset_handle: The name of the resource
         :return: The resource being unloaded, or None if it does not exist.
         """
-        return self.resources.pop(asset_handle, None)
+        return self.cache.pop(asset_handle, None)
 
     def forget(self, asset_handle: str) -> tuple[T | None, Any]:
         """
@@ -179,7 +191,7 @@ class ResourceManager[T]:
         :return: A tuple containing the old asset and its location data, or None if
         none exists.
         """
-        old_asset = self.dump(asset_handle)
+        old_asset = self.uncache(asset_handle)
         old_location = self.resource_locations.pop(asset_handle, None)
         return (old_asset, old_location)
 
