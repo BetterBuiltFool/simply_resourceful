@@ -94,7 +94,8 @@ class ResourceManager[T]:
         for item in files:
             if item.is_dir():
                 if recursive:
-                    files.append(item)
+                    for file in item.iterdir():
+                        files.append(file)
                 continue
             if not key(item):
                 continue
