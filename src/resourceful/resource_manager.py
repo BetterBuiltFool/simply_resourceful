@@ -58,10 +58,11 @@ class ResourceManager[T]:
         :param recursive: Whether to recursively search through subdirectories,
         defaults to False
         :param key: A function for choosing files to import, defaults all files
+        If you have mixed file types, do not rely on the default key.
         :param name_key: A function for creating asset names from files, defaults to
         the relative path to the directory plus the name of the file.
         :param location_data_key: Function for generating the location data required
-        for the asset loader, defaults to the file's parent folder.
+        for the asset loader, defaults to the file's path.
         """
         if key is None:
 
@@ -84,9 +85,9 @@ class ResourceManager[T]:
 
             def location_data_key(file: Path) -> Path:
                 """
-                Gives the parent of the file as the location data.
+                Gives path of the file as its location.
                 """
-                return file.parent
+                return file
 
         directory = Path(folder)
         files = list(directory.iterdir())
