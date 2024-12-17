@@ -79,7 +79,7 @@ class ResourceManager[T]:
                 file = file.relative_to(folder)
                 while file.suffix != "":
                     file = file.with_suffix("")
-                return str(file)
+                return str(file.as_posix())
 
         if location_data_key is None:
 
