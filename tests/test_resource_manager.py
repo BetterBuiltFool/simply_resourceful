@@ -2,6 +2,10 @@ import pathlib
 import sys
 import unittest
 
+import pyfakefs
+import pyfakefs.fake_filesystem
+import pyfakefs.fake_filesystem_unittest
+
 sys.path.append(str(pathlib.Path.cwd()))
 from src.resourceful import resource_manager as rm  # noqa: E402
 
@@ -37,6 +41,69 @@ class TestResourceManager(unittest.TestCase):
 
         self.assertTrue(len(self.test_manager.cache) == 0)
         self.assertTrue(len(self.test_manager.resource_locations) == 1)
+
+    @pyfakefs.fake_filesystem_unittest.patchfs
+    def test_import_directory(self, fs: pyfakefs.fake_filesystem.FakeFilesystem):
+        subfolder = fs.create_dir(pathlib.Path("root/directory/subfolder"))
+        directory = subfolder.parent_dir
+        # root = directory.parent_dir
+        for i in range(5):
+            fs.create_file(pathlib.Path(directory.path).joinpath(f"item{i}.file"))
+        for i in range(5):
+            fs.create_file(pathlib.Path(subfolder.path).joinpath(f"subitem{i}.file"))
+
+        # Test w/o recursion
+        self.test_manager.import_directory(directory.path, recursive=False)
+        self.assertEqual(len(self.test_manager.resource_locations), 5)
+
+        self.test_manager.resource_locations.clear()
+
+        # Test w/ recursion
+        self.test_manager.import_directory(directory.path, recursive=True)
+        self.assertEqual(len(self.test_manager.resource_locations), 10)
+
+        self.test_manager.resource_locations.clear()
+
+        # Test w/ exclusion key
+        def test_key(file: pathlib.Path) -> pathlib.Path | None:
+            # This is a stupid thing to check in a real scenario, but will do
+            if "0" in file.name or "1" in file.name:
+                return file
+            return None
+
+        self.test_manager.import_directory(
+            directory.path, recursive=False, key=test_key
+        )
+        self.assertEqual(len(self.test_manager.resource_locations), 2)
+
+        self.test_manager.resource_locations.clear()
+
+        # Test w/ naming key
+        def test_name_key(file: pathlib.Path) -> str:
+            # Just give the file name. This will conflict if files shafe names, but w/e
+            return file.name
+
+        self.test_manager.import_directory(
+            directory.path, recursive=True, name_key=test_name_key
+        )
+
+        self.assertIsNotNone(self.test_manager.resource_locations.get("subitem0.file"))
+
+        self.test_manager.resource_locations.clear()
+
+        # Test w/ custom location data key
+        def test_location_data_key(file: pathlib.Path) -> str:
+            # Give file path relative to the directory
+            return file.relative_to(directory.path)
+
+        self.test_manager.import_directory(
+            directory.path, recursive=True, location_data_key=test_location_data_key
+        )
+
+        self.assertEqual(
+            self.test_manager.resource_locations.get("subfolder/subitem0"),
+            pathlib.Path("subfolder/subitem0.file"),
+        )
 
     def test_force_load(self):
         self.test_manager.force_load("test_num", 1)
