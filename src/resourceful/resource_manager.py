@@ -48,8 +48,8 @@ class ResourceManager[T]:
         folder: os.PathLike | str,
         recursive: bool = False,
         file_filter: Optional[Callable] = None,
-        name_key: Optional[Callable] = None,
-        location_data_key: Optional[Callable] = None,
+        name_generator: Optional[Callable] = None,
+        location_data_generator: Optional[Callable] = None,
     ):
         """
         Parse a directory, importing all of the files inside into the resource manager.
@@ -60,10 +60,10 @@ class ResourceManager[T]:
         :param file_filter: A function for choosing files to import, defaults all files
         and folders.
         If you have mixed file types, do not rely on the default filter.
-        :param name_key: A function for creating asset names from files, defaults to
-        the relative path to the directory plus the name of the file.
-        :param location_data_key: Function for generating the location data required
-        for the asset loader, defaults to the file's path.
+        :param name_generator: A function for creating asset names from files, defaults
+        to the relative path to the directory plus the name of the file.
+        :param location_data_generator: Function for generating the location data
+        required for the asset loader, defaults to the file's path.
         """
         directory = Path(folder)
 
@@ -75,9 +75,9 @@ class ResourceManager[T]:
             def file_filter(file: Path) -> Path | None:
                 return file
 
-        if name_key is None:
+        if name_generator is None:
 
-            def name_key(file: Path) -> str:
+            def name_generator(file: Path) -> str:
                 """
                 Uses the relative path and filename, without suffixes,
                 as the default asset handle.
@@ -87,9 +87,9 @@ class ResourceManager[T]:
                     file = file.with_suffix("")
                 return str(file.as_posix())
 
-        if location_data_key is None:
+        if location_data_generator is None:
 
-            def location_data_key(file: Path) -> Path:
+            def location_data_generator(file: Path) -> Path:
                 """
                 Gives path of the file as its location.
                 """
@@ -98,14 +98,14 @@ class ResourceManager[T]:
         files = list(directory.iterdir())
         for item in files:
             if not file_filter(item):
-                # Filter first so
+                # Filter first so the filter can be used to exclude specific folders.
                 continue
             if item.is_dir():
                 if recursive:
                     for file in item.iterdir():
                         files.append(file)
                 continue
-            self.import_asset(name_key(item), location_data_key(item))
+            self.import_asset(name_generator(item), location_data_generator(item))
 
     def force_load(self, asset_handle: str, resource_location: Any) -> None:
         """
