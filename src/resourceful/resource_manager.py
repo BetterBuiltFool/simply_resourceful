@@ -47,7 +47,7 @@ class ResourceManager[T]:
         self,
         folder: os.PathLike | str,
         recursive: bool = False,
-        key: Optional[Callable] = None,
+        file_filter: Optional[Callable] = None,
         name_key: Optional[Callable] = None,
         location_data_key: Optional[Callable] = None,
     ):
@@ -57,8 +57,9 @@ class ResourceManager[T]:
         :param folder: Target directory
         :param recursive: Whether to recursively search through subdirectories,
         defaults to False
-        :param key: A function for choosing files to import, defaults all files
-        If you have mixed file types, do not rely on the default key.
+        :param file_filter: A function for choosing files to import, defaults all files
+        and folders.
+        If you have mixed file types, do not rely on the default filter.
         :param name_key: A function for creating asset names from files, defaults to
         the relative path to the directory plus the name of the file.
         :param location_data_key: Function for generating the location data required
@@ -69,9 +70,9 @@ class ResourceManager[T]:
         if not directory.is_dir():
             raise NotADirectoryError(f"'{folder}' is not a valid directory.")
 
-        if key is None:
+        if file_filter is None:
 
-            def key(file: Path) -> Path | None:
+            def file_filter(file: Path) -> Path | None:
                 return file
 
         if name_key is None:
@@ -96,12 +97,13 @@ class ResourceManager[T]:
 
         files = list(directory.iterdir())
         for item in files:
+            if not file_filter(item):
+                # Filter first so
+                continue
             if item.is_dir():
                 if recursive:
                     for file in item.iterdir():
                         files.append(file)
-                continue
-            if not key(item):
                 continue
             self.import_asset(name_key(item), location_data_key(item))
 
