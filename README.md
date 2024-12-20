@@ -75,7 +75,7 @@
       <ul>
         <li><a href="#types">Types</a></li>
         <li><a href="#using-asset-handles">Using Asset Handles</a></li>
-        <li><a href="#preloading">Preloading</a></li>
+        <li><a href="#importing-resources">Importing Resources</a></li>
         <li><a href="#configuration">Configuration</a></li>
       </ul>
     <li><a href="#roadmap">Roadmap</a></li>
@@ -118,7 +118,7 @@ and can be imported for use with:
 import resourceful
 ```
 
-Simply Resourceful also requires Pygame Community edition to be installed.
+Simply Resourceful has no mandatory dependencies, but has some extra options when Pygame Community Edition is installed.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -127,7 +127,7 @@ Simply Resourceful also requires Pygame Community edition to be installed.
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Assets can often be a heavy burden on memory. The process of loading them from file or downloading them can also be intensives. Having your assets loaded only once, and then reused whenever needed, can help reduce the load. Additionally, instead of loading all assets immediatly, lazy loading allows the load times to be deferred until an asset is needed, and never coming into memory at all if never requested.
+Assets can often be a heavy burden on memory. The process of loading them from file or downloading them can also be intensive. Having your assets loaded only once, and then reused whenever needed, can help reduce the load. Additionally, instead of loading all assets immediatly, lazy loading allows the load times to be deferred until an asset is needed, and never coming into memory at all if never requested.
 
 Resource Managers are created with 
 ```python
@@ -136,16 +136,24 @@ import resourceful
 MANAGER = resourceful.getResourceManager(<type>, "handle")
 ```
 
+Where \<type> is the class of resource to be managed.
+
 This will ensure that a resource manager for the given type and of the given handle exists.
-Handles are optional, but are useful for having resource managers with different loading behavior despite the same resource type.
+Handles are optional, but are useful for having resource managers with different loading behavior despite the same resource type, without increasing the complexity of the loader function.
 
 Note that for the rest of the document, 'resource' and 'asset' may be used interchangeably.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+#### Preconfigured Managers
+
+Additionally, if you have pygame-ce installed, you also gain eccess to two additional methods, resourceful.getImageManager() and resourceful.getSoundManager(). These are preconfigured resource managers for loading images and sounds from disk, respectively. They are not tracked by the Resource Manager, and must be gotten with these methods. These prebuilt managers are designed to take file paths for their resource location data.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ### Types
 
-Resource Managers are generic, and can handle any type of data. The type you want the resource manager to handle must be specified before use.
+Resource Managers are generic, and can handle almost any type of data. The type you want the resource manager to handle must be specified before use.
 
 ```python
 import pygame
@@ -160,7 +168,7 @@ In this example, a resource manager that handles pygame surfaces will be created
 
 ### Using Asset Handles
 
-Resources are referenced by asset handles, which are strings that supply common names to their resources. They are used as such:
+Resources are referenced by asset handles, which are strings that ascribe common names to their resources. They are used as such:
 ```python
 
 sprite.image = image_manager.get("Hero")
@@ -176,22 +184,39 @@ That use case would look something like this:
 sprite.image = image_manager.get(current_hero_pose, hero_blank_sprite)
 ```
 
-This way, if current_hero_pose accidentally refers to an invalid resource, the experience of the player will not be interrupted.
+This way, if current_hero_pose accidentally refers to an invalid resource, the program will not crash.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Preloading
+### Importing Resources
 
 Before any assets are requested, the resource manager must be made aware of the assets it will manage. This must be done early on in the program, before any manager.get() operations are called.
 ```python
 # ---Program set up stuff---
 # Global variables and such, module initialization, whatever.
-manager.preload("Hero", "path/to/hero.png")
+manager.import_asset("Hero", "path/to/hero.png")
 ```
 
 In this example, the manager now is aware of an asset called "Hero", as well as a path to find it for loading.
 
-Assets can also be force-loaded, which is similar to preloading, but loads the asset into memory from its location data immediately, no need to have something call get(). This might be useful for assets that are guaranteed to be used immediately.
+Location data can be anything the loader function can use to generate the asset. Typically, it will be a file location, but could also be a tuple of draw data for drawing surfaces, or data for downloading an asset from a database, or anything else, really.
+
+Assets can also be force-loaded, which is similar to importing, but loads the asset into memory from its location data immediately, no need to have something call get(). This might be useful for assets that are guaranteed to be used immediately.
+
+#### Mass Import
+
+Alternatively, you may also perform a mass import, using
+```python
+manager.import_directory("path/to/asset/folder")
+```
+
+This will import everything from the given directory. It has additional options, such as searching subfolders, and filter functions to change filtering, naming, and location data generation. This provides an easier to use way to import many assets, at the cost of control.
+
+By default, import_directory will import all files regardless of file type, names them based on their file name (and subfolder, if enabled), and gives their file path as their location data.
+
+#### Resource File
+
+It may be advisable to keep a separate module that contains all of your asset imports. This will collect them all in one place, outside of your main program code.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -207,7 +232,7 @@ def image_loader(resource_location: Path | str) -> pygame.Surface:
 # ---Program set up stuff---
 # Global variables and such, module initialization, whatever.
 manager.config(loader_helper=image_loader)
-manager.preload("Hero", "path/to/hero.png")
+manager.import_asset("Hero", "path/to/hero.png")
 ```
 
 This will load the image from the path, and convert it to be ready for use.
@@ -220,6 +245,10 @@ They can do anything else you'd like, and can be a simple or as complicated as y
 Additionally, in an async-aware environment, you could have your loader begin a coroutine to download your asset, and return a default asset to tide things over until then, updating the asset upon completion.
 
 From there, the resource manager will take over, loading and supplying resources as needed by other parts of the program.
+
+#### Preconfigured Options
+
+With pygame-ce installed, you additionally have access to two preconfigured resource managers, one for images (built around pygame Surfaces), and one for sounds. These both handle loading their respective resources automatically, and require PathLike data for their resource_location data.
 
 <!--
 _For more examples, please refer to the [Documentation](https://example.com)_
@@ -235,6 +264,8 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 
 - [ ] Make pickleable for saving and loading resource managers.
 - [ ] Allow for objects to request proxies that don't load the asset until it is called upon.
+    - This may not be possible for all objects.
+- [ ] Make a visual importing tool to generate pickle files for easy imports.
 
 <!--
 - [ ] Feature 2

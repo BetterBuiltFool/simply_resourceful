@@ -31,15 +31,11 @@ class ResourceManager[T]:
         """
         Prepares the resource manager to load a resource.
 
-        The asset handle is how users of the resource will ask for it.
-
-        The resource location is data that describes how the asset loader can locate
-        the resource. It may be a path, or a download site, or anything else, so long
-        as the asset loader can handle the parameters.
-
-        :param asset_handle: The name of the resource
+        :param asset_handle: The name of the resource, this will be the name that users
+        of the resource will need to reference in order to acquire it.
         :param resource_location: The data the asset loader needs to produce the
-        resource.
+        resource. It may be a path, or a download site, or anything else, so long
+        as the asset loader can handle the parameters.
         """
         self.resource_locations.update({asset_handle: resource_location})
 
@@ -47,9 +43,9 @@ class ResourceManager[T]:
         self,
         folder: os.PathLike | str,
         recursive: bool = False,
-        key: Optional[Callable] = None,
-        name_key: Optional[Callable] = None,
-        location_data_key: Optional[Callable] = None,
+        file_filter: Optional[Callable] = None,
+        name_generator: Optional[Callable] = None,
+        location_data_generator: Optional[Callable] = None,
     ):
         """
         Parse a directory, importing all of the files inside into the resource manager.
@@ -57,21 +53,28 @@ class ResourceManager[T]:
         :param folder: Target directory
         :param recursive: Whether to recursively search through subdirectories,
         defaults to False
-        :param key: A function for choosing files to import, defaults all files
-        If you have mixed file types, do not rely on the default key.
-        :param name_key: A function for creating asset names from files, defaults to
-        the relative path to the directory plus the name of the file.
-        :param location_data_key: Function for generating the location data required
-        for the asset loader, defaults to the file's path.
+        :param file_filter: A function for choosing files to import, defaults all files.
+        Will be called for subfolders as well, and can be used to exclude undesired
+        subfolders.
+        If you have mixed file types, do not rely on the default filter.
+        :param name_generator: A function for creating asset names from files, defaults
+        to the relative path to the directory plus the name of the file.
+        :param location_data_generator: Function for generating the location data
+        required for the asset loader, defaults to the file's path.
         """
-        if key is None:
+        directory = Path(folder)
 
-            def key(file: Path) -> Path | None:
+        if not directory.is_dir():
+            raise NotADirectoryError(f"'{folder}' is not a valid directory.")
+
+        if file_filter is None:
+
+            def file_filter(file: Path) -> Path | None:
                 return file
 
-        if name_key is None:
+        if name_generator is None:
 
-            def name_key(file: Path) -> str:
+            def name_generator(file: Path) -> str:
                 """
                 Uses the relative path and filename, without suffixes,
                 as the default asset handle.
@@ -81,32 +84,33 @@ class ResourceManager[T]:
                     file = file.with_suffix("")
                 return str(file.as_posix())
 
-        if location_data_key is None:
+        if location_data_generator is None:
 
-            def location_data_key(file: Path) -> Path:
+            def location_data_generator(file: Path) -> Path:
                 """
                 Gives path of the file as its location.
                 """
                 return file
 
-        directory = Path(folder)
         files = list(directory.iterdir())
         for item in files:
+            if not file_filter(item):
+                # Filter first so the filter can be used to exclude specific folders.
+                continue
             if item.is_dir():
                 if recursive:
                     for file in item.iterdir():
                         files.append(file)
                 continue
-            if not key(item):
-                continue
-            self.import_asset(name_key(item), location_data_key(item))
+            self.import_asset(name_generator(item), location_data_generator(item))
 
     def force_load(self, asset_handle: str, resource_location: Any) -> None:
         """
         Establishes the resource in the database, and loads it immediately instead of
         deferring to when the asset is requested.
 
-        :param asset_handle: The name of the resource
+        :param asset_handle: The name of the resource, which can be referenced by
+        users of that resource.
         :param resource_location: The data the asset loader needs to produce the
         resource.
         """
@@ -118,7 +122,8 @@ class ResourceManager[T]:
         """
         Changes the loaded resource of the given handle to that of the given asset.
 
-        :param asset_handle: The name of the resource
+        :param asset_handle: The name of the resource, which can be referenced by
+        users of that resource.
         :param asset: The new asset replacing the old asset.
         :return: The old asset, or None if the asset wasn't loaded.
         """
@@ -128,10 +133,14 @@ class ResourceManager[T]:
 
     def force_update(self, asset_handle: str, asset: T) -> None:
         """
+        [Experimental]
+
         Forces the asset at the given handle to become a copy of the supplied asset.
         This will hot-swap the asset for all of its users.
 
-        Note - Not all object may support this behavior, and may be broken by it.
+        Note - Not all objects may support this behavior, and may be broken by it.
+        Only works when the asset class mainly used __dict__. Slotified classes may
+        fail if they also lack a __dict__, or miss out on important data.
 
         :param asset_handle: The name of the resource
         :param asset: The new asset replacing the old asset.
@@ -146,15 +155,16 @@ class ResourceManager[T]:
 
     def get(self, asset_handle: str, default: Optional[T] = None) -> T:
         """
-        Gets the asset of the requested handle. Loads the asset if it isn't already.
+        Gets the asset of the requested handle. Loads the asset if it hasn't been
+        already.
         If the asset can't be loaded and a default is given, pass along that instead.
-        The default is not added to the loaded dict.
+        The default is not added to the cache.
 
         :param asset_handle: Name of the asset to be gotten
         :param default: Item returned if the asset is unavailable
         :raises KeyError: Raised if handle is not found or fails to load,
         and no default is given
-        :return: The (loaded) instance of the asset.
+        :return: The (loaded) instance of the asset, or the default.
         """
         if asset_handle not in self.resource_locations:
             if default is None:
@@ -184,23 +194,27 @@ class ResourceManager[T]:
 
         If the asset is requested again, it will be reloaded.
 
+        Safe to call, will not error if an invalid handle is used.
+
         :param asset_handle: The name of the resource
         :return: The resource being unloaded, or None if it does not exist.
         """
         return self.cache.pop(asset_handle, None)
 
-    def clear(self, asset_handle: str) -> tuple[T | None, Any]:
+    def clear(self, asset_handle: str) -> tuple[T | None, Any] | None:
         """
         Unloads the asset, and removes it from the load dictionary.
 
         If the resource is requested again, it will fail to load.
 
-        :param asset_handle: _description_
+        :param asset_handle: The name of the resource being cleared.
         :return: A tuple containing the old asset and its location data, or None if
         none exists.
         """
         old_asset = self.uncache(asset_handle)
         old_location = self.resource_locations.pop(asset_handle, None)
+        if old_location is None:
+            return None
         return (old_asset, old_location)
 
     @staticmethod
