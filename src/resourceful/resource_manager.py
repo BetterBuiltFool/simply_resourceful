@@ -64,6 +64,11 @@ class ResourceManager[T]:
         :param location_data_key: Function for generating the location data required
         for the asset loader, defaults to the file's path.
         """
+        directory = Path(folder)
+
+        if not directory.is_dir():
+            raise NotADirectoryError(f"'{folder}' is not a valid directory.")
+
         if key is None:
 
             def key(file: Path) -> Path | None:
@@ -89,7 +94,6 @@ class ResourceManager[T]:
                 """
                 return file
 
-        directory = Path(folder)
         files = list(directory.iterdir())
         for item in files:
             if item.is_dir():
