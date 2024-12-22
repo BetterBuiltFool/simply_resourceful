@@ -1,23 +1,24 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 import difflib
 import os
 from pathlib import Path
-from typing import Any, Callable, Optional, Type, TypeVar
+from typing import Any, TypeVar
 
 
 T = TypeVar("T")
 
 
 class ResourceManager[T]:
-    _instances: dict[Type[T], dict[str, ResourceManager]] = {}
+    _instances: dict[type[T], dict[str, ResourceManager]] = {}
 
     def __init__(self, handle: str) -> None:
         self.handle = handle
         self.cache: dict[str, T] = {}
         self.resource_locations: dict[str, Path] = {}
 
-    def config(self, loader_helper: Optional[Callable] = None) -> None:
+    def config(self, loader_helper: Callable | None = None) -> None:
         """
         Modifies the resource manager's behavior per the specified parameters.
 
@@ -43,9 +44,9 @@ class ResourceManager[T]:
         self,
         folder: os.PathLike | str,
         recursive: bool = False,
-        file_filter: Optional[Callable] = None,
-        name_generator: Optional[Callable] = None,
-        location_data_generator: Optional[Callable] = None,
+        file_filter: Callable | None = None,
+        name_generator: Callable | None = None,
+        location_data_generator: Callable | None = None,
     ):
         """
         Parse a directory, importing all of the files inside into the resource manager.
@@ -153,7 +154,7 @@ class ResourceManager[T]:
         # Otherwise, force the loaded asset to take on the new asset's attributes.
         old_asset.__dict__ = asset.__dict__
 
-    def get(self, asset_handle: str, default: Optional[T] = None) -> T:
+    def get(self, asset_handle: str, default: T | None = None) -> T:
         """
         Gets the asset of the requested handle. Loads the asset if it hasn't been
         already.
@@ -229,7 +230,7 @@ class ResourceManager[T]:
         )
 
 
-def getResourceManager(asset_type: Type[T], handle: str = "") -> ResourceManager[T]:
+def getResourceManager(asset_type: type[T], handle: str = "") -> ResourceManager[T]:
     """
     Provides a Resource Manager of the specified type and handle.
     If the asset type or handle do not match an existing one, it will be created.
