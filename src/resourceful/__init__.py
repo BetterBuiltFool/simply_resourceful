@@ -1,4 +1,8 @@
-from .resource_manager import getResourceManager, ResourceManager  # noqa: F401
+from .resource_manager import (  # noqa: F401
+    getResourceManager,
+    ResourceManager,
+    NoDefault,
+)
 
 try:
     import pygame  # noqa: F401
