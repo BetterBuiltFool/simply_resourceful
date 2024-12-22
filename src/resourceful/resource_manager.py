@@ -52,7 +52,7 @@ class ResourceManager[T]:
         """
         Dictionary caching all of the loaded assets with their handles.
         """
-        self.resource_locations: dict[str, Path] = {}
+        self.resource_locations: dict[str, Any] = {}
         """
         Dictionary holding needed loading data for each asset.
         """
