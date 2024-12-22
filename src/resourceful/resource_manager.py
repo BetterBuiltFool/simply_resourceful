@@ -9,6 +9,9 @@ from typing import Any, TypeVar
 
 T = TypeVar("T")
 
+# Sentinel value for defining no default object, so None may be used as a valid option.
+No_Default = object()
+
 
 class ResourceManager[T]:
     _instances: dict[type[T], dict[str, ResourceManager]] = {}
