@@ -4,29 +4,80 @@ from collections.abc import Callable
 import difflib
 import os
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 
 T = TypeVar("T")
 
 
+class SentinelMeta(type):
+
+    def __repr__(cls) -> str:
+        return f"<{cls.__name__}>"
+
+    def __bool__(cls) -> Literal[False]:
+        return False
+
+
+class NoDefault(metaclass=SentinelMeta):
+    """
+    Sentinel class to serve as a comparison for default asset parameters, allowing None
+    to be a valid asset value.
+    """
+
+    pass
+
+
 class ResourceManager[T]:
+    """
+    A class for that tracks resources of a given type, ascribing handles to them for
+    easy reference, and lazy loading them when requested.
+    """
+
     _instances: dict[type[T], dict[str, ResourceManager]] = {}
 
     def __init__(self, handle: str) -> None:
-        self.handle = handle
-        self.cache: dict[str, T] = {}
-        self.resource_locations: dict[str, Path] = {}
+        """
+        Create an asset manager for the given type, with the given handle.
 
-    def config(self, loader_helper: Callable | None = None) -> None:
+        :param type: Type of asset to be managed.
+        :param handle: Name for the asset manager, so multiple managers for the same
+        resource type can exist.
+        """
+        self.handle = handle
+        """
+        Name of the Resource Manager
+        """
+        self.cache: dict[str, T] = {}
+        """
+        Dictionary caching all of the loaded assets with their handles.
+        """
+        self.resource_locations: dict[str, Any] = {}
+        """
+        Dictionary holding needed loading data for each asset.
+        """
+        self.default_asset: T | None | NoDefault = NoDefault
+        """
+        Default asset to be supplied if requested asset cannot be loaded.
+        """
+
+    def config(
+        self,
+        loader_helper: Callable | None = None,
+        default_asset: T | None | NoDefault = NoDefault,
+    ) -> None:
         """
         Modifies the resource manager's behavior per the specified parameters.
 
         :param loader_helper: Loader function for the resource. Must take the location
         data its parameter, and return an instance of the resource.
+        :param default_asset: An asset matching the manager's managed type, or None.
+        Defaults to No_Default.
         """
         if loader_helper:
             self._asset_loader = loader_helper
+        if default_asset is not NoDefault:
+            self.default_asset = default_asset
 
     def import_asset(self, asset_handle: str, resource_location: Any) -> None:
         """
@@ -154,21 +205,27 @@ class ResourceManager[T]:
         # Otherwise, force the loaded asset to take on the new asset's attributes.
         old_asset.__dict__ = asset.__dict__
 
-    def get(self, asset_handle: str, default: T | None = None) -> T:
+    def get(
+        self, asset_handle: str, default: T | None | NoDefault = NoDefault
+    ) -> T | None:
         """
         Gets the asset of the requested handle. Loads the asset if it hasn't been
         already.
-        If the asset can't be loaded and a default is given, pass along that instead.
+        If the asset can't be loaded and a default is given or available in the manager,
+        pass along that instead.
         The default is not added to the cache.
 
         :param asset_handle: Name of the asset to be gotten
         :param default: Item returned if the asset is unavailable
         :raises KeyError: Raised if handle is not found or fails to load,
-        and no default is given
-        :return: The (loaded) instance of the asset, or the default.
+        and no default is given or otherwise available.
+        :return: The (loaded) instance of the asset, or the default if available.
         """
+        if default is NoDefault and self.default_asset is not NoDefault:
+            # Refer to the manager's default asset if no local default is provided.
+            default = self.default_asset
         if asset_handle not in self.resource_locations:
-            if default is None:
+            if default is NoDefault:
                 closest = difflib.get_close_matches(
                     asset_handle, self.resource_locations.keys(), n=1
                 )
@@ -182,7 +239,7 @@ class ResourceManager[T]:
             asset = self._asset_loader(self.resource_locations.get(asset_handle))
             if asset is None:
                 # Last chance to get an asset
-                if default is None:
+                if default is NoDefault:
                     raise KeyError(f"Resource '{asset_handle}' failed to load.")
                 asset = default
             self.cache[asset_handle] = asset

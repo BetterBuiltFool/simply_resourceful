@@ -11,6 +11,28 @@ _has_transparency: list[str] = [".png", ".gif", ".lbm", ".webp", ".tga", ".xcf",
 # I think that's all of them that can have alpha. I'll adjust as needed.
 
 
+_default_scale_factor = 8
+DEFAULT_SURFACE = pygame.Surface((_default_scale_factor * 4, _default_scale_factor * 4))
+"""
+A 16x16 black and fuchsia checkerboard pattern to serve as a default image.
+"""
+DEFAULT_SURFACE.fill(pygame.Color("black"))
+for i in range(4):
+    for j in range(4):
+        if i % 2 == j % 2:
+            # This creates a checkerboard pattern
+            pygame.draw.rect(
+                DEFAULT_SURFACE,
+                pygame.Color("fuchsia"),
+                pygame.Rect(
+                    _default_scale_factor * i,
+                    _default_scale_factor * j,
+                    _default_scale_factor,
+                    _default_scale_factor,
+                ),
+            )
+
+
 def _load_pygame_images(resource_location: os.PathLike | str) -> pygame.Surface:
     location = Path(resource_location)
     file_type = location.suffix
@@ -28,7 +50,7 @@ def _load_pygame_sounds(resource_location: os.PathLike | str) -> pygame.Sound:
     return pygame.mixer.Sound(location)
 
 
-_image_manager.config(loader_helper=_load_pygame_images)
+_image_manager.config(loader_helper=_load_pygame_images, default_asset=DEFAULT_SURFACE)
 _sound_manager.config(loader_helper=_load_pygame_sounds)
 
 
