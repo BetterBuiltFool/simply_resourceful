@@ -19,19 +19,47 @@ class SentinelMeta(type):
         return False
 
 
-# Sentinel value for defining no default object, so None may be used as a valid option.
 class NoDefault(metaclass=SentinelMeta):
+    """
+    Sentinel class to serve as a comparison for default asset parameters, allowing None
+    to be a valid asset value.
+    """
+
     pass
 
 
 class ResourceManager[T]:
+    """
+    A class for that tracks resources of a given type, ascribing handles to them for
+    easy reference, and lazy loading them when requested.
+    """
+
     _instances: dict[type[T], dict[str, ResourceManager]] = {}
 
     def __init__(self, handle: str) -> None:
+        """
+        Create an asset manager for the given type, with the given handle.
+
+        :param type: Type of asset to be managed.
+        :param handle: Name for the asset manager, so multiple managers for the same
+        resource type can exist.
+        """
         self.handle = handle
+        """
+        Name of the Resource Manager
+        """
         self.cache: dict[str, T] = {}
+        """
+        Dictionary caching all of the loaded assets with their handles.
+        """
         self.resource_locations: dict[str, Path] = {}
+        """
+        Dictionary holding needed loading data for each asset.
+        """
         self.default_asset: T | None | NoDefault = NoDefault
+        """
+        Default asset to be supplied if requested asset cannot be loaded.
+        """
 
     def config(
         self,
