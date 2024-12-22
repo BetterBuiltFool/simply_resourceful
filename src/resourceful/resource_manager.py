@@ -10,8 +10,8 @@ from typing import Any, TypeVar
 T = TypeVar("T")
 
 # Sentinel value for defining no default object, so None may be used as a valid option.
-No_Default_Type = TypeVar("No_Default_Type")
-No_Default = object()
+No_Default_Type = type  # ("No_Default_Type")
+No_Default: No_Default_Type = object()
 
 
 class ResourceManager[T]:
@@ -33,6 +33,8 @@ class ResourceManager[T]:
 
         :param loader_helper: Loader function for the resource. Must take the location
         data its parameter, and return an instance of the resource.
+        :param default_asset: An asset matching the manager's managed type, or None.
+        Defaults to No_Default.
         """
         if loader_helper:
             self._asset_loader = loader_helper
@@ -167,11 +169,12 @@ class ResourceManager[T]:
 
     def get(
         self, asset_handle: str, default: T | None | No_Default_Type = No_Default
-    ) -> T:
+    ) -> T | None:
         """
         Gets the asset of the requested handle. Loads the asset if it hasn't been
         already.
-        If the asset can't be loaded and a default is given, pass along that instead.
+        If the asset can't be loaded and a default is given or available in the manager,
+        pass along that instead.
         The default is not added to the cache.
 
         :param asset_handle: Name of the asset to be gotten
@@ -180,8 +183,11 @@ class ResourceManager[T]:
         and no default is given or otherwise available.
         :return: The (loaded) instance of the asset, or the default if available.
         """
+        if default is No_Default and self.default_asset is not No_Default:
+            # Refer to the manager's default asset if no local default is provided.
+            default = self.default_asset
         if asset_handle not in self.resource_locations:
-            if default is None:
+            if default is No_Default:
                 closest = difflib.get_close_matches(
                     asset_handle, self.resource_locations.keys(), n=1
                 )
