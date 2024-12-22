@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simply_resourceful"
-version = "0.9.0"
+version = "1.0.0"
 authors = [
     { name="BetterBuiltFool", email="betterbuiltfool@gmail.com"}
 ]
@@ -18,4 +18,12 @@ classifiers = [
     "Topic :: Games/Entertainment",
     "Topic :: Software Development :: Libraries :: pygame",
     "Typing :: Typed"
+]
+
+[project.optional-dependencies]
+test = [
+    "pyfakefs >= 5.7.3",
+]
+pygame = [
+    "pygame_ce >= 2.5.2"
 ]
