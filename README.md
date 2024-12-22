@@ -136,7 +136,7 @@ import resourceful
 MANAGER = resourceful.getResourceManager(<type>, "handle")
 ```
 
-Where \<type> is the class of resource to be managed.
+Where ```<type>``` is the class of resource to be managed.
 
 This will ensure that a resource manager for the given type and of the given handle exists.
 Handles are optional, but are useful for having resource managers with different loading behavior despite the same resource type, without increasing the complexity of the loader function.
@@ -222,6 +222,8 @@ It may be advisable to keep a separate module that contains all of your asset im
 
 ### Configuration
 
+#### Loader Functions
+
 Because resource managers are generic, they have no inherent knowledge of how to load any given resource. So, a loader function must be supplied.
 For example:
 ```python
@@ -245,6 +247,16 @@ They can do anything else you'd like, and can be a simple or as complicated as y
 Additionally, in an async-aware environment, you could have your loader begin a coroutine to download your asset, and return a default asset to tide things over until then, updating the asset upon completion.
 
 From there, the resource manager will take over, loading and supplying resources as needed by other parts of the program.
+
+#### Default Assets
+
+A default asset may be provided in the config function, allowing suppression of errors for loading failures by always having an option to fill in any blanks. If get() is called with a default value, it will override the manager-level default asset.
+
+None is considered a valid default, and should be handled appropriately. Simply Resourceful makes use of a sentinel value called NoDefault to determine that a default value does not exist or shouldn't be used.
+
+```python
+manager.config(default_asset=some_asset)
+```
 
 #### Preconfigured Options
 
