@@ -11,7 +11,8 @@ _has_transparency: list[str] = [".png", ".gif", ".lbm", ".webp", ".tga", ".xcf",
 # I think that's all of them that can have alpha. I'll adjust as needed.
 
 
-DEFAULT_SURFACE = pygame.Surface((16, 16))
+_default_scale_factor = 8
+DEFAULT_SURFACE = pygame.Surface((_default_scale_factor * 4, _default_scale_factor * 4))
 """
 A 16x16 black and fuchsia checkerboard pattern to serve as a default image.
 """
@@ -23,7 +24,12 @@ for i in range(4):
             pygame.draw.rect(
                 DEFAULT_SURFACE,
                 pygame.Color("fuchsia"),
-                pygame.Rect(4 * i, 4 * j, 4, 4),
+                pygame.Rect(
+                    _default_scale_factor * i,
+                    _default_scale_factor * j,
+                    _default_scale_factor,
+                    _default_scale_factor,
+                ),
             )
 
 
