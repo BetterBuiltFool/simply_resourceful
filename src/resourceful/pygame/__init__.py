@@ -1,1 +1,5 @@
-from .pygame_prebuilt import getImageManager, getSoundManager  # noqa:F401
+from .pygame_prebuilt import (  # noqa:F401
+    getImageManager,
+    getSoundManager,
+    DEFAULT_SURFACE,
+)
