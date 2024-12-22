@@ -72,7 +72,7 @@ class TestResourceManager(unittest.TestCase):
             return None
 
         self.test_manager.import_directory(
-            directory.path, recursive=False, key=test_key
+            directory.path, recursive=False, file_filter=test_key
         )
         self.assertEqual(len(self.test_manager.resource_locations), 2)
 
@@ -84,7 +84,7 @@ class TestResourceManager(unittest.TestCase):
             return file.name
 
         self.test_manager.import_directory(
-            directory.path, recursive=True, name_key=test_name_key
+            directory.path, recursive=True, name_generator=test_name_key
         )
 
         self.assertIsNotNone(self.test_manager.resource_locations.get("subitem0.file"))
@@ -97,7 +97,9 @@ class TestResourceManager(unittest.TestCase):
             return file.relative_to(directory.path)
 
         self.test_manager.import_directory(
-            directory.path, recursive=True, location_data_key=test_location_data_key
+            directory.path,
+            recursive=True,
+            location_data_generator=test_location_data_key,
         )
 
         self.assertEqual(
