@@ -21,8 +21,13 @@ class ResourceManager[T]:
         self.handle = handle
         self.cache: dict[str, T] = {}
         self.resource_locations: dict[str, Path] = {}
+        self.default_asset: T | None | No_Default_Type = No_Default
 
-    def config(self, loader_helper: Callable | None = None) -> None:
+    def config(
+        self,
+        loader_helper: Callable | None = None,
+        default_asset: T | None | No_Default_Type = No_Default,
+    ) -> None:
         """
         Modifies the resource manager's behavior per the specified parameters.
 
@@ -31,6 +36,8 @@ class ResourceManager[T]:
         """
         if loader_helper:
             self._asset_loader = loader_helper
+        if default_asset is not No_Default:
+            self.default_asset = default_asset
 
     def import_asset(self, asset_handle: str, resource_location: Any) -> None:
         """
