@@ -4,14 +4,24 @@ from collections.abc import Callable
 import difflib
 import os
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 
 T = TypeVar("T")
 
+
+class SentinelMeta(type):
+
+    def __repr__(cls) -> str:
+        return f"<{cls.__name__}>"
+
+    def __bool__(cls) -> Literal[False]:
+        return False
+
+
 # Sentinel value for defining no default object, so None may be used as a valid option.
-No_Default_Type = type  # ("No_Default_Type")
-No_Default: No_Default_Type = object()
+class NoDefault(metaclass=SentinelMeta):
+    pass
 
 
 class ResourceManager[T]:
@@ -21,12 +31,12 @@ class ResourceManager[T]:
         self.handle = handle
         self.cache: dict[str, T] = {}
         self.resource_locations: dict[str, Path] = {}
-        self.default_asset: T | None | No_Default_Type = No_Default
+        self.default_asset: T | None | NoDefault = NoDefault
 
     def config(
         self,
         loader_helper: Callable | None = None,
-        default_asset: T | None | No_Default_Type = No_Default,
+        default_asset: T | None | NoDefault = NoDefault,
     ) -> None:
         """
         Modifies the resource manager's behavior per the specified parameters.
@@ -38,7 +48,7 @@ class ResourceManager[T]:
         """
         if loader_helper:
             self._asset_loader = loader_helper
-        if default_asset is not No_Default:
+        if default_asset is not NoDefault:
             self.default_asset = default_asset
 
     def import_asset(self, asset_handle: str, resource_location: Any) -> None:
@@ -168,7 +178,7 @@ class ResourceManager[T]:
         old_asset.__dict__ = asset.__dict__
 
     def get(
-        self, asset_handle: str, default: T | None | No_Default_Type = No_Default
+        self, asset_handle: str, default: T | None | NoDefault = NoDefault
     ) -> T | None:
         """
         Gets the asset of the requested handle. Loads the asset if it hasn't been
@@ -183,11 +193,11 @@ class ResourceManager[T]:
         and no default is given or otherwise available.
         :return: The (loaded) instance of the asset, or the default if available.
         """
-        if default is No_Default and self.default_asset is not No_Default:
+        if default is NoDefault and self.default_asset is not NoDefault:
             # Refer to the manager's default asset if no local default is provided.
             default = self.default_asset
         if asset_handle not in self.resource_locations:
-            if default is No_Default:
+            if default is NoDefault:
                 closest = difflib.get_close_matches(
                     asset_handle, self.resource_locations.keys(), n=1
                 )
