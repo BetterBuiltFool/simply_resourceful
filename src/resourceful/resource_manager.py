@@ -211,7 +211,7 @@ class ResourceManager[T]:
             asset = self._asset_loader(self.resource_locations.get(asset_handle))
             if asset is None:
                 # Last chance to get an asset
-                if default is None:
+                if default is NoDefault:
                     raise KeyError(f"Resource '{asset_handle}' failed to load.")
                 asset = default
             self.cache[asset_handle] = asset
