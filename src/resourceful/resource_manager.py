@@ -10,6 +10,7 @@ from typing import Any, TypeVar
 T = TypeVar("T")
 
 # Sentinel value for defining no default object, so None may be used as a valid option.
+No_Default_Type = TypeVar("No_Default_Type")
 No_Default = object()
 
 
@@ -157,7 +158,9 @@ class ResourceManager[T]:
         # Otherwise, force the loaded asset to take on the new asset's attributes.
         old_asset.__dict__ = asset.__dict__
 
-    def get(self, asset_handle: str, default: T | None = None) -> T:
+    def get(
+        self, asset_handle: str, default: T | None | No_Default_Type = No_Default
+    ) -> T:
         """
         Gets the asset of the requested handle. Loads the asset if it hasn't been
         already.
@@ -167,8 +170,8 @@ class ResourceManager[T]:
         :param asset_handle: Name of the asset to be gotten
         :param default: Item returned if the asset is unavailable
         :raises KeyError: Raised if handle is not found or fails to load,
-        and no default is given
-        :return: The (loaded) instance of the asset, or the default.
+        and no default is given or otherwise available.
+        :return: The (loaded) instance of the asset, or the default if available.
         """
         if asset_handle not in self.resource_locations:
             if default is None:
