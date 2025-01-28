@@ -6,7 +6,7 @@ from ..resource_manager import ResourceManager
 import pygame
 
 _image_manager = ResourceManager[pygame.Surface]("pygame_images")
-_sound_manager = ResourceManager[pygame.Sound]("pygame_sounds")
+_sound_manager = ResourceManager[pygame.mixer.Sound]("pygame_sounds")
 _has_transparency: list[str] = [".png", ".gif", ".lbm", ".webp", ".tga", ".xcf", ".qoi"]
 # I think that's all of them that can have alpha. I'll adjust as needed.
 
@@ -45,7 +45,7 @@ def _load_pygame_images(resource_location: os.PathLike | str) -> pygame.Surface:
     return image
 
 
-def _load_pygame_sounds(resource_location: os.PathLike | str) -> pygame.Sound:
+def _load_pygame_sounds(resource_location: os.PathLike | str) -> pygame.mixer.Sound:
     location = Path(resource_location)
     return pygame.mixer.Sound(location)
 
